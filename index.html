@@ -216,18 +216,32 @@
     }
     .id-card-header {
       text-align: center;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       padding-bottom: 12px;
       border-bottom: 1px solid #ccc;
+    }
+    .id-card-header .line1 {
+      font-size: 16px;
+      font-weight: 700;
       color: #1a1a1a;
+      letter-spacing: 1px;
+    }
+    .id-card-header .line2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-top: 4px;
     }
     .id-card-row {
       display: flex;
       align-items: baseline;
       margin-bottom: 14px;
       font-size: 14px;
+    }
+    .id-card-row.half {
+      display: inline-flex;
+      width: 48%;
+      margin-bottom: 14px;
     }
     .id-card-label {
       font-weight: 600;
@@ -1061,7 +1075,8 @@
     function getVal(id) { return document.getElementById(id)?.value || ''; }
 
     // 构建 ID card 风格的页面（只保留英文）
-    function buildCardPage(title, imgId, rows) {
+    // rows 可以是 [label, value] 或 {label, value, half: true}
+    function buildCardPage(title, imgId, rows, headerLines) {
       const img = document.getElementById(imgId);
       let html = '<div class="preview-page">';
       html += `<div class="preview-title">${title}</div>`;
@@ -1069,10 +1084,30 @@
         html += `<div class="preview-image"><img src="${img.src}"></div>`;
       }
       html += '<div class="id-card-box">';
-      html += '<div class="id-card-header">People\'s Republic of China</div>';
-      rows.forEach(([label, value]) => {
-        if (value) {
-          html += `<div class="id-card-row"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
+      if (headerLines) {
+        html += '<div class="id-card-header">';
+        headerLines.forEach((line, i) => {
+          html += `<div class="line${i+1}">${line}</div>`;
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="id-card-header"><div class="line1">People\'s Republic of China</div></div>';
+      }
+      rows.forEach((row) => {
+        if (Array.isArray(row)) {
+          const [label, value] = row;
+          if (value) {
+            html += `<div class="id-card-row"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
+          }
+        } else if (row.half && row.items) {
+          // 同行排列
+          html += '<div style="display:flex;gap:20px;">';
+          row.items.forEach(([label, value]) => {
+            if (value) {
+              html += `<div class="id-card-row half"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
+            }
+          });
+          html += '</div>';
         }
       });
       html += '</div></div>';
@@ -1085,16 +1120,18 @@
 
       if (activeTab === '身份证') {
         html += buildCardPage('Translation of Resident Identification Card (Front)', 'id-front-preview', [
-          ['Issuing Authority', getVal('id-front-issuer-en')],
-          ['Validity Period', getVal('id-front-valid-en')]
-        ]);
+          ['Issued by', getVal('id-front-issuer-en')],
+          ['Duration of Validity', getVal('id-front-valid-en')]
+        ], ["People's Republic of China", 'Resident Identification Card']);
         html += buildCardPage('Translation of Resident Identification Card (Back)', 'id-back-preview', [
           ['Name', getVal('id-back-fullname-en')],
-          ['Gender', getVal('id-back-gender-en')],
-          ['Ethnic Group', getVal('id-back-ethnic-en')],
+          {half: true, items: [
+            ['Gender', getVal('id-back-gender-en')],
+            ['Ethnic Group', getVal('id-back-ethnic-en')]
+          ]},
           ['Date of Birth', getVal('id-back-dob-en')],
           ['Address', getVal('id-back-address-en')],
-          ['Citizen ID Number', getVal('id-back-idnum-en')]
+          ['ID number', getVal('id-back-idnum-en')]
         ]);
       } else {
         html += buildCardPage('Translation of Household Registration Book (Cover)', 'hk-cover-preview', [
