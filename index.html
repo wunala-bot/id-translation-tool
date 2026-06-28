@@ -103,10 +103,9 @@
 
     .form-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
     }
-    .form-grid.full { grid-template-columns: 1fr; }
     .field {
       display: flex;
       flex-direction: column;
@@ -127,6 +126,18 @@
     .field input:focus, .field select:focus {
       outline: none;
       border-color: var(--accent);
+    }
+    .field .auto-translated {
+      background: #f0f7ff;
+      border-color: #bfdbfe;
+    }
+    .field .auto-translated:focus {
+      border-color: #60a5fa;
+    }
+    .field-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
     }
 
     .btn {
@@ -159,7 +170,7 @@
       margin-top: 20px;
     }
 
-    /* Preview / PDF output */
+    /* Preview / PDF output - ID card style */
     #pdf-preview {
       background: white;
       padding: 40px;
@@ -185,28 +196,54 @@
       max-height: 400px;
       border: 1px solid #ddd;
     }
-    .preview-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-    .preview-table th, .preview-table td {
-      border: 1px solid #333;
-      padding: 10px 12px;
-      text-align: left;
-    }
-    .preview-table th {
-      background: #f0f0f0;
-      font-weight: 600;
-      width: 30%;
-    }
     .preview-title {
       font-size: 16px;
       font-weight: 700;
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-transform: uppercase;
       letter-spacing: 1px;
+    }
+
+    /* ID Card style box */
+    .id-card-box {
+      border: 2px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 24px 32px;
+      background: #fafafa;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .id-card-header {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ccc;
+      color: #1a1a1a;
+    }
+    .id-card-row {
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+    .id-card-label {
+      font-weight: 600;
+      color: #333;
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+    .id-card-value {
+      color: #1a1a1a;
+      flex: 1;
+      word-break: break-all;
+    }
+    .id-card-separator {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 16px 0;
     }
 
     @media print {
@@ -215,8 +252,9 @@
       #pdf-preview { border: none; margin: 0; padding: 0; }
     }
     @media (max-width: 600px) {
-      .form-grid { grid-template-columns: 1fr; }
       body { padding: 12px; }
+      .id-card-box { padding: 16px 20px; }
+      .id-card-label { min-width: 100px; }
     }
   </style>
 </head>
@@ -242,12 +280,23 @@
       <div class="section">
         <div class="section-title">正面翻译内容</div>
         <div class="form-grid">
-          <div class="field"><label>证件名称</label><input type="text" id="id-front-name" value="居民身份证"></div>
-          <div class="field"><label>英文名称</label><input type="text" id="id-front-name-en" value="Resident Identity Card"></div>
-          <div class="field"><label>签发机关</label><input type="text" id="id-front-issuer" placeholder="如：北京市公安局海淀分局"></div>
-          <div class="field"><label>英文签发机关</label><input type="text" id="id-front-issuer-en" placeholder="如：Haidian Branch, Beijing Municipal Public Security Bureau"></div>
-          <div class="field"><label>有效期限</label><input type="text" id="id-front-valid" placeholder="如：2020.01.01 - 2040.01.01"></div>
-          <div class="field"><label>英文有效期限</label><input type="text" id="id-front-valid-en" placeholder="如：Valid from 2020.01.01 to 2040.01.01"></div>
+          <div class="field">
+            <label>签发机关</label>
+            <input type="text" id="id-front-issuer" placeholder="如：北京市公安局海淀分局" oninput="autoTranslate('id-front-issuer', 'id-front-issuer-en', 'issuer')">
+            <div class="field-hint">输入中文后自动翻译</div>
+          </div>
+          <div class="field">
+            <label>英文签发机关</label>
+            <input type="text" id="id-front-issuer-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>有效期限</label>
+            <input type="text" id="id-front-valid" placeholder="如：2020.01.01 - 2040.01.01" oninput="autoTranslate('id-front-valid', 'id-front-valid-en', 'validity')">
+          </div>
+          <div class="field">
+            <label>英文有效期限</label>
+            <input type="text" id="id-front-valid-en" class="auto-translated" placeholder="自动翻译">
+          </div>
         </div>
       </div>
       <div class="section">
@@ -261,28 +310,58 @@
       <div class="section">
         <div class="section-title">背面翻译内容</div>
         <div class="form-grid">
-          <div class="field"><label>姓名</label><input type="text" id="id-back-fullname" placeholder="中文姓名"></div>
-          <div class="field"><label>英文姓名</label><input type="text" id="id-back-fullname-en" placeholder="如：ZHANG SAN"></div>
-          <div class="field"><label>性别</label>
-            <select id="id-back-gender">
+          <div class="field">
+            <label>姓名</label>
+            <input type="text" id="id-back-fullname" placeholder="中文姓名" oninput="autoTranslate('id-back-fullname', 'id-back-fullname-en', 'name')">
+          </div>
+          <div class="field">
+            <label>英文姓名</label>
+            <input type="text" id="id-back-fullname-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>性别</label>
+            <select id="id-back-gender" onchange="autoTranslate('id-back-gender', 'id-back-gender-en', 'gender')">
+              <option value="">请选择</option>
               <option value="男">男</option>
               <option value="女">女</option>
             </select>
           </div>
-          <div class="field"><label>英文性别</label>
-            <select id="id-back-gender-en">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
+          <div class="field">
+            <label>英文性别</label>
+            <input type="text" id="id-back-gender-en" class="auto-translated" placeholder="自动翻译" readonly>
           </div>
-          <div class="field"><label>民族</label><input type="text" id="id-back-ethnic" placeholder="如：汉"></div>
-          <div class="field"><label>英文民族</label><input type="text" id="id-back-ethnic-en" placeholder="如：Han"></div>
-          <div class="field"><label>出生日期</label><input type="text" id="id-back-dob" placeholder="如：1990年1月1日"></div>
-          <div class="field"><label>英文出生日期</label><input type="text" id="id-back-dob-en" placeholder="如：January 1, 1990"></div>
-          <div class="field"><label>住址</label><input type="text" id="id-back-address" placeholder="完整住址"></div>
-          <div class="field"><label>英文住址</label><input type="text" id="id-back-address-en" placeholder="英文住址"></div>
-          <div class="field"><label>公民身份号码</label><input type="text" id="id-back-idnum" placeholder="18位身份证号"></div>
-          <div class="field"><label>英文身份号码</label><input type="text" id="id-back-idnum-en" placeholder="如：ID No."></div>
+          <div class="field">
+            <label>民族</label>
+            <input type="text" id="id-back-ethnic" placeholder="如：汉" oninput="autoTranslate('id-back-ethnic', 'id-back-ethnic-en', 'ethnic')">
+          </div>
+          <div class="field">
+            <label>英文民族</label>
+            <input type="text" id="id-back-ethnic-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>出生日期</label>
+            <input type="text" id="id-back-dob" placeholder="如：1990年1月1日" oninput="autoTranslate('id-back-dob', 'id-back-dob-en', 'dob')">
+          </div>
+          <div class="field">
+            <label>英文出生日期</label>
+            <input type="text" id="id-back-dob-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>住址</label>
+            <input type="text" id="id-back-address" placeholder="完整住址" oninput="autoTranslate('id-back-address', 'id-back-address-en', 'address')">
+          </div>
+          <div class="field">
+            <label>英文住址</label>
+            <input type="text" id="id-back-address-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>公民身份号码</label>
+            <input type="text" id="id-back-idnum" placeholder="18位身份证号" oninput="autoTranslate('id-back-idnum', 'id-back-idnum-en', 'idnum')">
+          </div>
+          <div class="field">
+            <label>英文身份号码</label>
+            <input type="text" id="id-back-idnum-en" class="auto-translated" placeholder="自动翻译">
+          </div>
         </div>
       </div>
     </div>
@@ -300,20 +379,54 @@
       <div class="section">
         <div class="section-title">首页翻译内容</div>
         <div class="form-grid">
-          <div class="field"><label>户别</label><input type="text" id="hk-cover-type" value="居民家庭户口"></div>
-          <div class="field"><label>英文户别</label><input type="text" id="hk-cover-type-en" value="Household Type: Family Household"></div>
-          <div class="field"><label>户主姓名</label><input type="text" id="hk-cover-head" placeholder="户主姓名"></div>
-          <div class="field"><label>英文户主姓名</label><input type="text" id="hk-cover-head-en" placeholder="如：Head of Household: ZHANG SAN"></div>
-          <div class="field"><label>户号</label><input type="text" id="hk-cover-num" placeholder="户号"></div>
-          <div class="field"><label>英文户号</label><input type="text" id="hk-cover-num-en" placeholder="如：Household No."></div>
-          <div class="field"><label>住址</label><input type="text" id="hk-cover-address" placeholder="完整住址"></div>
-          <div class="field"><label>英文住址</label><input type="text" id="hk-cover-address-en" placeholder="英文住址"></div>
-          <div class="field"><label>承办人签章</label><input type="text" id="hk-cover-agent" placeholder="承办人"></div>
-          <div class="field"><label>英文承办人</label><input type="text" id="hk-cover-agent-en" placeholder="如：Registered by:"></div>
-          <div class="field"><label>签发日期</label><input type="text" id="hk-cover-date" placeholder="如：2020年1月1日"></div>
-          <div class="field"><label>英文签发日期</label><input type="text" id="hk-cover-date-en" placeholder="如：Date of Issue: January 1, 2020"></div>
-          <div class="field"><label>省级公安机关户口专用章</label><input type="text" id="hk-cover-stamp" value="（户口专用章）"></div>
-          <div class="field"><label>英文印章</label><input type="text" id="hk-cover-stamp-en" value="(Official Seal for Household Registration)"></div>
+          <div class="field">
+            <label>户别</label>
+            <input type="text" id="hk-cover-type" value="居民家庭户口" oninput="autoTranslate('hk-cover-type', 'hk-cover-type-en', 'household_type')">
+          </div>
+          <div class="field">
+            <label>英文户别</label>
+            <input type="text" id="hk-cover-type-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>户主姓名</label>
+            <input type="text" id="hk-cover-head" placeholder="户主姓名" oninput="autoTranslate('hk-cover-head', 'hk-cover-head-en', 'name')">
+          </div>
+          <div class="field">
+            <label>英文户主姓名</label>
+            <input type="text" id="hk-cover-head-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>户号</label>
+            <input type="text" id="hk-cover-num" placeholder="户号" oninput="autoTranslate('hk-cover-num', 'hk-cover-num-en', 'household_num')">
+          </div>
+          <div class="field">
+            <label>英文户号</label>
+            <input type="text" id="hk-cover-num-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>住址</label>
+            <input type="text" id="hk-cover-address" placeholder="完整住址" oninput="autoTranslate('hk-cover-address', 'hk-cover-address-en', 'address')">
+          </div>
+          <div class="field">
+            <label>英文住址</label>
+            <input type="text" id="hk-cover-address-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>承办人签章</label>
+            <input type="text" id="hk-cover-agent" placeholder="承办人" oninput="autoTranslate('hk-cover-agent', 'hk-cover-agent-en', 'agent')">
+          </div>
+          <div class="field">
+            <label>英文承办人</label>
+            <input type="text" id="hk-cover-agent-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>签发日期</label>
+            <input type="text" id="hk-cover-date" placeholder="如：2020年1月1日" oninput="autoTranslate('hk-cover-date', 'hk-cover-date-en', 'date')">
+          </div>
+          <div class="field">
+            <label>英文签发日期</label>
+            <input type="text" id="hk-cover-date-en" class="auto-translated" placeholder="自动翻译">
+          </div>
         </div>
       </div>
       <div class="section">
@@ -327,62 +440,194 @@
       <div class="section">
         <div class="section-title">登记卡翻译内容</div>
         <div class="form-grid">
-          <div class="field"><label>姓名</label><input type="text" id="hk-page-name" placeholder="姓名"></div>
-          <div class="field"><label>英文姓名</label><input type="text" id="hk-page-name-en" placeholder="如：Name: ZHANG SAN"></div>
-          <div class="field"><label>户别或与户主关系</label><input type="text" id="hk-page-relation" placeholder="如：户主 / 之女"></div>
-          <div class="field"><label>英文关系</label><input type="text" id="hk-page-relation-en" placeholder="如：Relationship to Head: Daughter"></div>
-          <div class="field"><label>曾用名</label><input type="text" id="hk-page-former" placeholder="无 / 曾用名"></div>
-          <div class="field"><label>英文曾用名</label><input type="text" id="hk-page-former-en" placeholder="如：Former Name: None"></div>
-          <div class="field"><label>性别</label>
-            <select id="hk-page-gender">
+          <div class="field">
+            <label>姓名</label>
+            <input type="text" id="hk-page-name" placeholder="姓名" oninput="autoTranslate('hk-page-name', 'hk-page-name-en', 'name')">
+          </div>
+          <div class="field">
+            <label>英文姓名</label>
+            <input type="text" id="hk-page-name-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>户别或与户主关系</label>
+            <input type="text" id="hk-page-relation" placeholder="如：户主 / 之女" oninput="autoTranslate('hk-page-relation', 'hk-page-relation-en', 'relation')">
+          </div>
+          <div class="field">
+            <label>英文关系</label>
+            <input type="text" id="hk-page-relation-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>曾用名</label>
+            <input type="text" id="hk-page-former" placeholder="无 / 曾用名" oninput="autoTranslate('hk-page-former', 'hk-page-former-en', 'former_name')">
+          </div>
+          <div class="field">
+            <label>英文曾用名</label>
+            <input type="text" id="hk-page-former-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>性别</label>
+            <select id="hk-page-gender" onchange="autoTranslate('hk-page-gender', 'hk-page-gender-en', 'gender')">
+              <option value="">请选择</option>
               <option value="男">男</option>
               <option value="女">女</option>
             </select>
           </div>
-          <div class="field"><label>英文性别</label>
-            <select id="hk-page-gender-en">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
+          <div class="field">
+            <label>英文性别</label>
+            <input type="text" id="hk-page-gender-en" class="auto-translated" placeholder="自动翻译" readonly>
           </div>
-          <div class="field"><label>出生地</label><input type="text" id="hk-page-birthplace" placeholder="如：北京市海淀区"></div>
-          <div class="field"><label>英文出生地</label><input type="text" id="hk-page-birthplace-en" placeholder="如：Place of Birth: Haidian District, Beijing"></div>
-          <div class="field"><label>民族</label><input type="text" id="hk-page-ethnic" placeholder="如：汉族"></div>
-          <div class="field"><label>英文民族</label><input type="text" id="hk-page-ethnic-en" placeholder="如：Ethnicity: Han"></div>
-          <div class="field"><label>籍贯</label><input type="text" id="hk-page-origin" placeholder="如：北京市"></div>
-          <div class="field"><label>英文籍贯</label><input type="text" id="hk-page-origin-en" placeholder="如：Native Place: Beijing"></div>
-          <div class="field"><label>出生日期</label><input type="text" id="hk-page-dob" placeholder="如：1990年1月1日"></div>
-          <div class="field"><label>英文出生日期</label><input type="text" id="hk-page-dob-en" placeholder="如：Date of Birth: January 1, 1990"></div>
-          <div class="field"><label>本市/县其他住址</label><input type="text" id="hk-page-otheraddr" placeholder="无 / 其他住址"></div>
-          <div class="field"><label>英文其他住址</label><input type="text" id="hk-page-otheraddr-en" placeholder="如：Other Address in City/County: None"></div>
-          <div class="field"><label>宗教信仰</label><input type="text" id="hk-page-religion" value="无"></div>
-          <div class="field"><label>英文宗教信仰</label><input type="text" id="hk-page-religion-en" value="Religion: None"></div>
-          <div class="field"><label>公民身份证件编号</label><input type="text" id="hk-page-idnum" placeholder="18位身份证号"></div>
-          <div class="field"><label>英文证件编号</label><input type="text" id="hk-page-idnum-en" placeholder="如：ID Card No."></div>
-          <div class="field"><label>身高</label><input type="text" id="hk-page-height" placeholder="如：175cm"></div>
-          <div class="field"><label>英文身高</label><input type="text" id="hk-page-height-en" placeholder="如：Height: 175cm"></div>
-          <div class="field"><label>血型</label><input type="text" id="hk-page-blood" placeholder="如：A型 / 未知"></div>
-          <div class="field"><label>英文血型</label><input type="text" id="hk-page-blood-en" placeholder="如：Blood Type: Type A"></div>
-          <div class="field"><label>文化程度</label><input type="text" id="hk-page-edu" placeholder="如：大学本科"></div>
-          <div class="field"><label>英文文化程度</label><input type="text" id="hk-page-edu-en" placeholder="如：Education: Bachelor's Degree"></div>
-          <div class="field"><label>婚姻状况</label><input type="text" id="hk-page-marriage" placeholder="如：未婚"></div>
-          <div class="field"><label>英文婚姻状况</label><input type="text" id="hk-page-marriage-en" placeholder="如：Marital Status: Single"></div>
-          <div class="field"><label>兵役状况</label><input type="text" id="hk-page-military" value="未服兵役"></div>
-          <div class="field"><label>英文兵役状况</label><input type="text" id="hk-page-military-en" value="Military Service: Not Served"></div>
-          <div class="field"><label>服务处所</label><input type="text" id="hk-page-workplace" placeholder="如：XX公司 / 无"></div>
-          <div class="field"><label>英文服务处所</label><input type="text" id="hk-page-workplace-en" placeholder="如：Employer: XX Company"></div>
-          <div class="field"><label>职业</label><input type="text" id="hk-page-job" placeholder="如：职员 / 无"></div>
-          <div class="field"><label>英文职业</label><input type="text" id="hk-page-job-en" placeholder="如：Occupation: Staff"></div>
-          <div class="field"><label>何时由何地迁来本市/县</label><input type="text" id="hk-page-migrate" placeholder="如：2010年9月1日 由北京市XX区迁来"></div>
-          <div class="field"><label>英文迁移记录</label><input type="text" id="hk-page-migrate-en" placeholder="如：Moved to this city/county on Sep 1, 2010 from XX District, Beijing"></div>
-          <div class="field"><label>何时由何地迁来本址</label><input type="text" id="hk-page-movein" placeholder="如：2020年1月1日 因购房由XX路XX号迁来"></div>
-          <div class="field"><label>英文迁入记录</label><input type="text" id="hk-page-movein-en" placeholder="如：Moved to this address on Jan 1, 2020 due to property purchase"></div>
-          <div class="field"><label>登记日期</label><input type="text" id="hk-page-regdate" placeholder="如：2020年1月1日"></div>
-          <div class="field"><label>英文登记日期</label><input type="text" id="hk-page-regdate-en" placeholder="如：Date of Registration: January 1, 2020"></div>
-          <div class="field"><label>承办人签章</label><input type="text" id="hk-page-agent" placeholder="承办人"></div>
-          <div class="field"><label>英文承办人</label><input type="text" id="hk-page-agent-en" placeholder="如：Registered by:"></div>
-          <div class="field"><label>登记机关</label><input type="text" id="hk-page-authority" placeholder="如：XX派出所"></div>
-          <div class="field"><label>英文登记机关</label><input type="text" id="hk-page-authority-en" placeholder="如：Registration Authority: XX Police Station"></div>
+          <div class="field">
+            <label>出生地</label>
+            <input type="text" id="hk-page-birthplace" placeholder="如：北京市海淀区" oninput="autoTranslate('hk-page-birthplace', 'hk-page-birthplace-en', 'birthplace')">
+          </div>
+          <div class="field">
+            <label>英文出生地</label>
+            <input type="text" id="hk-page-birthplace-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>民族</label>
+            <input type="text" id="hk-page-ethnic" placeholder="如：汉族" oninput="autoTranslate('hk-page-ethnic', 'hk-page-ethnic-en', 'ethnic')">
+          </div>
+          <div class="field">
+            <label>英文民族</label>
+            <input type="text" id="hk-page-ethnic-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>籍贯</label>
+            <input type="text" id="hk-page-origin" placeholder="如：北京市" oninput="autoTranslate('hk-page-origin', 'hk-page-origin-en', 'origin')">
+          </div>
+          <div class="field">
+            <label>英文籍贯</label>
+            <input type="text" id="hk-page-origin-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>出生日期</label>
+            <input type="text" id="hk-page-dob" placeholder="如：1990年1月1日" oninput="autoTranslate('hk-page-dob', 'hk-page-dob-en', 'dob')">
+          </div>
+          <div class="field">
+            <label>英文出生日期</label>
+            <input type="text" id="hk-page-dob-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>本市/县其他住址</label>
+            <input type="text" id="hk-page-otheraddr" placeholder="无 / 其他住址" oninput="autoTranslate('hk-page-otheraddr', 'hk-page-otheraddr-en', 'other_addr')">
+          </div>
+          <div class="field">
+            <label>英文其他住址</label>
+            <input type="text" id="hk-page-otheraddr-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>宗教信仰</label>
+            <input type="text" id="hk-page-religion" value="无" oninput="autoTranslate('hk-page-religion', 'hk-page-religion-en', 'religion')">
+          </div>
+          <div class="field">
+            <label>英文宗教信仰</label>
+            <input type="text" id="hk-page-religion-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>公民身份证件编号</label>
+            <input type="text" id="hk-page-idnum" placeholder="18位身份证号" oninput="autoTranslate('hk-page-idnum', 'hk-page-idnum-en', 'idnum')">
+          </div>
+          <div class="field">
+            <label>英文证件编号</label>
+            <input type="text" id="hk-page-idnum-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>身高</label>
+            <input type="text" id="hk-page-height" placeholder="如：175cm" oninput="autoTranslate('hk-page-height', 'hk-page-height-en', 'height')">
+          </div>
+          <div class="field">
+            <label>英文身高</label>
+            <input type="text" id="hk-page-height-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>血型</label>
+            <input type="text" id="hk-page-blood" placeholder="如：A型 / 未知" oninput="autoTranslate('hk-page-blood', 'hk-page-blood-en', 'blood')">
+          </div>
+          <div class="field">
+            <label>英文血型</label>
+            <input type="text" id="hk-page-blood-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>文化程度</label>
+            <input type="text" id="hk-page-edu" placeholder="如：大学本科" oninput="autoTranslate('hk-page-edu', 'hk-page-edu-en', 'education')">
+          </div>
+          <div class="field">
+            <label>英文文化程度</label>
+            <input type="text" id="hk-page-edu-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>婚姻状况</label>
+            <input type="text" id="hk-page-marriage" placeholder="如：未婚" oninput="autoTranslate('hk-page-marriage', 'hk-page-marriage-en', 'marriage')">
+          </div>
+          <div class="field">
+            <label>英文婚姻状况</label>
+            <input type="text" id="hk-page-marriage-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>兵役状况</label>
+            <input type="text" id="hk-page-military" value="未服兵役" oninput="autoTranslate('hk-page-military', 'hk-page-military-en', 'military')">
+          </div>
+          <div class="field">
+            <label>英文兵役状况</label>
+            <input type="text" id="hk-page-military-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>服务处所</label>
+            <input type="text" id="hk-page-workplace" placeholder="如：XX公司 / 无" oninput="autoTranslate('hk-page-workplace', 'hk-page-workplace-en', 'workplace')">
+          </div>
+          <div class="field">
+            <label>英文服务处所</label>
+            <input type="text" id="hk-page-workplace-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>职业</label>
+            <input type="text" id="hk-page-job" placeholder="如：职员 / 无" oninput="autoTranslate('hk-page-job', 'hk-page-job-en', 'job')">
+          </div>
+          <div class="field">
+            <label>英文职业</label>
+            <input type="text" id="hk-page-job-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>何时由何地迁来本市/县</label>
+            <input type="text" id="hk-page-migrate" placeholder="如：2010年9月1日 由北京市XX区迁来" oninput="autoTranslate('hk-page-migrate', 'hk-page-migrate-en', 'migrate')">
+          </div>
+          <div class="field">
+            <label>英文迁移记录</label>
+            <input type="text" id="hk-page-migrate-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>何时由何地迁来本址</label>
+            <input type="text" id="hk-page-movein" placeholder="如：2020年1月1日 因购房由XX路XX号迁来" oninput="autoTranslate('hk-page-movein', 'hk-page-movein-en', 'movein')">
+          </div>
+          <div class="field">
+            <label>英文迁入记录</label>
+            <input type="text" id="hk-page-movein-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>登记日期</label>
+            <input type="text" id="hk-page-regdate" placeholder="如：2020年1月1日" oninput="autoTranslate('hk-page-regdate', 'hk-page-regdate-en', 'date')">
+          </div>
+          <div class="field">
+            <label>英文登记日期</label>
+            <input type="text" id="hk-page-regdate-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>承办人签章</label>
+            <input type="text" id="hk-page-agent" placeholder="承办人" oninput="autoTranslate('hk-page-agent', 'hk-page-agent-en', 'agent')">
+          </div>
+          <div class="field">
+            <label>英文承办人</label>
+            <input type="text" id="hk-page-agent-en" class="auto-translated" placeholder="自动翻译">
+          </div>
+          <div class="field">
+            <label>登记机关</label>
+            <input type="text" id="hk-page-authority" placeholder="如：XX派出所" oninput="autoTranslate('hk-page-authority', 'hk-page-authority-en', 'authority')">
+          </div>
+          <div class="field">
+            <label>英文登记机关</label>
+            <input type="text" id="hk-page-authority-en" class="auto-translated" placeholder="自动翻译">
+          </div>
         </div>
       </div>
     </div>
@@ -396,6 +641,401 @@
   </div>
 
   <script>
+    // ========== 专业术语翻译字典 ==========
+    const TRANSLATIONS = {
+      // 性别
+      '男': 'Male',
+      '女': 'Female',
+      // 民族（56个民族标准译法）
+      '汉': 'Han',
+      '汉族': 'Han',
+      '满': 'Manchu',
+      '满族': 'Manchu',
+      '回': 'Hui',
+      '回族': 'Hui',
+      '蒙古': 'Mongol',
+      '蒙古族': 'Mongol',
+      '维吾尔': 'Uyghur',
+      '维吾尔族': 'Uyghur',
+      '藏': 'Tibetan',
+      '藏族': 'Tibetan',
+      '苗': 'Miao',
+      '苗族': 'Miao',
+      '彝': 'Yi',
+      '彝族': 'Yi',
+      '壮': 'Zhuang',
+      '壮族': 'Zhuang',
+      '布依': 'Buyei',
+      '布依族': 'Buyei',
+      '侗': 'Dong',
+      '侗族': 'Dong',
+      '瑶': 'Yao',
+      '瑶族': 'Yao',
+      '白': 'Bai',
+      '白族': 'Bai',
+      '土家': 'Tujia',
+      '土家族': 'Tujia',
+      '哈尼': 'Hani',
+      '哈尼族': 'Hani',
+      '哈萨克': 'Kazakh',
+      '哈萨克族': 'Kazakh',
+      '傣': 'Dai',
+      '傣族': 'Dai',
+      '黎': 'Li',
+      '黎族': 'Li',
+      '傈僳': 'Lisu',
+      '傈僳族': 'Lisu',
+      '佤': 'Va',
+      '佤族': 'Va',
+      '畲': 'She',
+      '畲族': 'She',
+      '高山': 'Gaoshan',
+      '高山族': 'Gaoshan',
+      '拉祜': 'Lahu',
+      '拉祜族': 'Lahu',
+      '水': 'Sui',
+      '水族': 'Sui',
+      '东乡': 'Dongxiang',
+      '东乡族': 'Dongxiang',
+      '纳西': 'Naxi',
+      '纳西族': 'Naxi',
+      '景颇': 'Jingpo',
+      '景颇族': 'Jingpo',
+      '柯尔克孜': 'Kirgiz',
+      '柯尔克孜族': 'Kirgiz',
+      '土': 'Tu',
+      '土族': 'Tu',
+      '达斡尔': 'Daur',
+      '达斡尔族': 'Daur',
+      '仫佬': 'Mulao',
+      '仫佬族': 'Mulao',
+      '羌': 'Qiang',
+      '羌族': 'Qiang',
+      '布朗': 'Blang',
+      '布朗族': 'Blang',
+      '撒拉': 'Salar',
+      '撒拉族': 'Salar',
+      '毛南': 'Maonan',
+      '毛南族': 'Maonan',
+      '仡佬': 'Gelao',
+      '仡佬族': 'Gelao',
+      '锡伯': 'Xibe',
+      '锡伯族': 'Xibe',
+      '阿昌': 'Achang',
+      '阿昌族': 'Achang',
+      '普米': 'Pumi',
+      '普米族': 'Pumi',
+      '塔吉克': 'Tajik',
+      '塔吉克族': 'Tajik',
+      '怒': 'Nu',
+      '怒族': 'Nu',
+      '乌孜别克': 'Uzbek',
+      '乌孜别克族': 'Uzbek',
+      '俄罗斯': 'Russian',
+      '俄罗斯族': 'Russian',
+      '鄂温克': 'Ewenki',
+      '鄂温克族': 'Ewenki',
+      '德昂': 'Deang',
+      '德昂族': 'Deang',
+      '保安': 'Bonan',
+      '保安族': 'Bonan',
+      '裕固': 'Yugur',
+      '裕固族': 'Yugur',
+      '京': 'Gin',
+      '京族': 'Gin',
+      '塔塔尔': 'Tatar',
+      '塔塔尔族': 'Tatar',
+      '独龙': 'Derung',
+      '独龙族': 'Derung',
+      '鄂伦春': 'Oroqen',
+      '鄂伦春族': 'Oroqen',
+      '赫哲': 'Hezhen',
+      '赫哲族': 'Hezhen',
+      '门巴': 'Monba',
+      '门巴族': 'Monba',
+      '珞巴': 'Lhoba',
+      '珞巴族': 'Lhoba',
+      '基诺': 'Jino',
+      '基诺族': 'Jino',
+      // 血型
+      'A型': 'Type A',
+      'B型': 'Type B',
+      'AB型': 'Type AB',
+      'O型': 'Type O',
+      '未知': 'Unknown',
+      '不详': 'Unknown',
+      // 婚姻状况
+      '未婚': 'Single',
+      '已婚': 'Married',
+      '离婚': 'Divorced',
+      '丧偶': 'Widowed',
+      // 兵役
+      '未服兵役': 'Not Served',
+      '已服兵役': 'Served',
+      '免服兵役': 'Exempted',
+      // 户别
+      '居民家庭户口': 'Family Household',
+      '集体户口': 'Collective Household',
+      '农业户口': 'Agricultural Household',
+      '非农业户口': 'Non-agricultural Household',
+      // 常见职业
+      '职员': 'Staff',
+      '工人': 'Worker',
+      '农民': 'Farmer',
+      '教师': 'Teacher',
+      '医生': 'Doctor',
+      '工程师': 'Engineer',
+      '学生': 'Student',
+      '无': 'None',
+      '自由职业': 'Freelancer',
+      '公务员': 'Civil Servant',
+      '企业主': 'Business Owner',
+      '个体户': 'Self-employed',
+      // 文化程度
+      '小学': 'Primary School',
+      '初中': 'Junior High School',
+      '高中': 'Senior High School',
+      '中专': 'Technical Secondary School',
+      '大专': 'Junior College',
+      '大学专科': 'Junior College',
+      '大学本科': 'Bachelor\'s Degree',
+      '本科': 'Bachelor\'s Degree',
+      '硕士研究生': 'Master\'s Degree',
+      '硕士': 'Master\'s Degree',
+      '博士研究生': 'Doctoral Degree',
+      '博士': 'Doctoral Degree',
+      // 宗教信仰
+      '无': 'None',
+      '佛教': 'Buddhism',
+      '道教': 'Taoism',
+      '基督教': 'Christianity',
+      '天主教': 'Catholicism',
+      '伊斯兰教': 'Islam',
+      // 关系
+      '户主': 'Head of Household',
+      '之妻': 'Wife',
+      '之夫': 'Husband',
+      '之子': 'Son',
+      '之女': 'Daughter',
+      '之父': 'Father',
+      '之母': 'Mother',
+      '之兄': 'Elder Brother',
+      '之弟': 'Younger Brother',
+      '之姐': 'Elder Sister',
+      '之妹': 'Younger Sister',
+      '之祖父': 'Grandfather',
+      '之祖母': 'Grandmother',
+      '之外祖父': 'Maternal Grandfather',
+      '之外祖母': 'Maternal Grandmother',
+      '之孙': 'Grandson',
+      '之孙女': 'Granddaughter',
+    };
+
+    // 标签翻译（固定前缀）
+    const LABELS = {
+      'issuer': 'Issuing Authority',
+      'validity': 'Validity Period',
+      'name': 'Name',
+      'gender': 'Gender',
+      'ethnic': 'Ethnic Group',
+      'dob': 'Date of Birth',
+      'address': 'Address',
+      'idnum': 'Citizen ID Number',
+      'household_type': 'Household Type',
+      'household_num': 'Household Number',
+      'agent': 'Registered by',
+      'date': 'Date of Issue',
+      'relation': 'Relationship to Head',
+      'former_name': 'Former Name',
+      'birthplace': 'Place of Birth',
+      'origin': 'Place of Origin',
+      'other_addr': 'Other Address',
+      'religion': 'Religion',
+      'height': 'Height',
+      'blood': 'Blood Type',
+      'education': 'Education Level',
+      'marriage': 'Marital Status',
+      'military': 'Military Service Status',
+      'workplace': 'Service Place',
+      'job': 'Occupation',
+      'migrate': 'Migration Record',
+      'movein': 'Move-in Record',
+      'authority': 'Registration Authority',
+    };
+
+    // 自动翻译函数
+    function autoTranslate(cnId, enId, type) {
+      const cnVal = document.getElementById(cnId).value.trim();
+      const enField = document.getElementById(enId);
+      if (!cnVal) {
+        enField.value = '';
+        return;
+      }
+
+      // 先查字典
+      let translated = TRANSLATIONS[cnVal];
+      
+      // 如果没找到，根据类型处理
+      if (!translated) {
+        switch (type) {
+          case 'gender':
+            translated = cnVal === '男' ? 'Male' : (cnVal === '女' ? 'Female' : cnVal);
+            break;
+          case 'dob':
+          case 'date':
+            translated = translateDate(cnVal);
+            break;
+          case 'validity':
+            translated = translateValidity(cnVal);
+            break;
+          case 'address':
+          case 'birthplace':
+          case 'origin':
+            translated = translateAddress(cnVal);
+            break;
+          case 'name':
+            translated = translateName(cnVal);
+            break;
+          case 'height':
+            translated = cnVal;
+            break;
+          case 'idnum':
+          case 'household_num':
+            translated = cnVal;
+            break;
+          case 'issuer':
+            translated = translateIssuer(cnVal);
+            break;
+          case 'authority':
+            translated = translateAuthority(cnVal);
+            break;
+          case 'agent':
+            translated = cnVal;
+            break;
+          case 'workplace':
+            translated = cnVal === '无' ? 'None' : cnVal;
+            break;
+          case 'job':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'migrate':
+          case 'movein':
+            translated = translateMigrate(cnVal);
+            break;
+          case 'relation':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'former_name':
+            translated = cnVal === '无' ? 'None' : translateName(cnVal);
+            break;
+          case 'other_addr':
+            translated = cnVal === '无' ? 'None' : translateAddress(cnVal);
+            break;
+          case 'household_type':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'education':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'marriage':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'military':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'religion':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          case 'blood':
+            translated = TRANSLATIONS[cnVal] || cnVal;
+            break;
+          default:
+            translated = cnVal;
+        }
+      }
+
+      enField.value = translated;
+    }
+
+    // 日期翻译：1990年1月1日 → January 1, 1990
+    function translateDate(dateStr) {
+      const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (!match) return dateStr;
+      const months = ['January','February','March','April','May','June',
+        'July','August','September','October','November','December'];
+      return `${months[parseInt(match[2])-1]} ${match[3]}, ${match[1]}`;
+    }
+
+    // 有效期翻译
+    function translateValidity(val) {
+      const match = val.match(/(\d{4}\.\d{2}\.\d{2})\s*[-~]\s*(\d{4}\.\d{2}\.\d{2})/);
+      if (match) return `${match[1]} - ${match[2]}`;
+      return val;
+    }
+
+    // 地址翻译（简单处理，保留中文地名拼音）
+    function translateAddress(addr) {
+      // 常见地址替换
+      const replacements = {
+        '省': 'Province',
+        '市': 'City',
+        '区': 'District',
+        '县': 'County',
+        '镇': 'Town',
+        '乡': 'Township',
+        '街道': 'Subdistrict',
+        '路': 'Road',
+        '街': 'Street',
+        '巷': 'Lane',
+        '号': 'No.',
+        '栋': 'Building',
+        '单元': 'Unit',
+        '室': 'Room',
+        '楼': 'Floor',
+        '层': 'Floor',
+      };
+      let result = addr;
+      for (const [cn, en] of Object.entries(replacements)) {
+        result = result.replace(new RegExp(cn, 'g'), ' ' + en);
+      }
+      return result.replace(/\s+/g, ' ').trim();
+    }
+
+    // 姓名翻译（拼音转换）
+    function translateName(name) {
+      // 简单处理：如果已经是拼音或英文，直接返回
+      if (/^[A-Za-z\s]+$/.test(name)) return name;
+      // 否则返回提示，让用户手动输入拼音
+      return name + ' (Pinyin required)';
+    }
+
+    // 签发机关翻译
+    function translateIssuer(issuer) {
+      const replacements = {
+        '公安局': 'Public Security Bureau',
+        '分局': 'Branch',
+        '派出所': 'Police Station',
+      };
+      let result = issuer;
+      for (const [cn, en] of Object.entries(replacements)) {
+        result = result.replace(new RegExp(cn, 'g'), en);
+      }
+      return result;
+    }
+
+    // 登记机关翻译
+    function translateAuthority(auth) {
+      return auth.replace('派出所', 'Police Station');
+    }
+
+    // 迁移记录翻译
+    function translateMigrate(rec) {
+      return rec.replace(/(\d{4})年(\d{1,2})月(\d{1,2})日/, (m, y, mth, d) => {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[parseInt(mth)-1]} ${d}, ${y}`;
+      }).replace('由', 'from').replace('迁来', 'moved to');
+    }
+
     function switchTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -420,24 +1060,22 @@
 
     function getVal(id) { return document.getElementById(id)?.value || ''; }
 
-    function buildTable(rows) {
-      let html = '<table class="preview-table">';
-      rows.forEach(([cn, en]) => {
-        if (cn || en) html += `<tr><th>${cn}</th><td>${en}</td></tr>`;
-      });
-      html += '</table>';
-      return html;
-    }
-
-    function buildPage(title, imgId, tableRows) {
+    // 构建 ID card 风格的页面（只保留英文）
+    function buildCardPage(title, imgId, rows) {
       const img = document.getElementById(imgId);
       let html = '<div class="preview-page">';
       html += `<div class="preview-title">${title}</div>`;
       if (img && img.src && img.style.display !== 'none') {
         html += `<div class="preview-image"><img src="${img.src}"></div>`;
       }
-      html += buildTable(tableRows);
-      html += '</div>';
+      html += '<div class="id-card-box">';
+      html += '<div class="id-card-header">People\'s Republic of China</div>';
+      rows.forEach(([label, value]) => {
+        if (value) {
+          html += `<div class="id-card-row"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
+        }
+      });
+      html += '</div></div>';
       return html;
     }
 
@@ -446,53 +1084,51 @@
       let html = '';
 
       if (activeTab === '身份证') {
-        html += buildPage('Translation of Resident Identity Card (Front)', 'id-front-preview', [
-          ['证件名称 / Document Name', getVal('id-front-name') + ' / ' + getVal('id-front-name-en')],
-          ['签发机关 / Issuing Authority', getVal('id-front-issuer') + ' / ' + getVal('id-front-issuer-en')],
-          ['有效期限 / Validity Period', getVal('id-front-valid') + ' / ' + getVal('id-front-valid-en')]
+        html += buildCardPage('Translation of Resident Identification Card (Front)', 'id-front-preview', [
+          ['Issuing Authority', getVal('id-front-issuer-en')],
+          ['Validity Period', getVal('id-front-valid-en')]
         ]);
-        html += buildPage('Translation of Resident Identity Card (Back)', 'id-back-preview', [
-          ['姓名 / Name', getVal('id-back-fullname') + ' / ' + getVal('id-back-fullname-en')],
-          ['性别 / Gender', getVal('id-back-gender') + ' / ' + getVal('id-back-gender-en')],
-          ['民族 / Ethnicity', getVal('id-back-ethnic') + ' / ' + getVal('id-back-ethnic-en')],
-          ['出生 / Date of Birth', getVal('id-back-dob') + ' / ' + getVal('id-back-dob-en')],
-          ['住址 / Address', getVal('id-back-address') + ' / ' + getVal('id-back-address-en')],
-          ['公民身份号码 / ID Number', getVal('id-back-idnum') + ' / ' + getVal('id-back-idnum-en')]
+        html += buildCardPage('Translation of Resident Identification Card (Back)', 'id-back-preview', [
+          ['Name', getVal('id-back-fullname-en')],
+          ['Gender', getVal('id-back-gender-en')],
+          ['Ethnic Group', getVal('id-back-ethnic-en')],
+          ['Date of Birth', getVal('id-back-dob-en')],
+          ['Address', getVal('id-back-address-en')],
+          ['Citizen ID Number', getVal('id-back-idnum-en')]
         ]);
       } else {
-        html += buildPage('Translation of Household Registration Book (Cover Page)', 'hk-cover-preview', [
-          ['户别 / Household Type', getVal('hk-cover-type') + ' / ' + getVal('hk-cover-type-en')],
-          ['户主姓名 / Head of Household', getVal('hk-cover-head') + ' / ' + getVal('hk-cover-head-en')],
-          ['户号 / Household No.', getVal('hk-cover-num') + ' / ' + getVal('hk-cover-num-en')],
-          ['住址 / Address', getVal('hk-cover-address') + ' / ' + getVal('hk-cover-address-en')],
-          ['承办人签章 / Registered by', getVal('hk-cover-agent') + ' / ' + getVal('hk-cover-agent-en')],
-          ['签发日期 / Date of Issue', getVal('hk-cover-date') + ' / ' + getVal('hk-cover-date-en')],
-          ['户口专用章 / Official Seal', getVal('hk-cover-stamp') + ' / ' + getVal('hk-cover-stamp-en')]
+        html += buildCardPage('Translation of Household Registration Book (Cover)', 'hk-cover-preview', [
+          ['Household Type', getVal('hk-cover-type-en')],
+          ['Head of Household', getVal('hk-cover-head-en')],
+          ['Household Number', getVal('hk-cover-num-en')],
+          ['Address', getVal('hk-cover-address-en')],
+          ['Registered by', getVal('hk-cover-agent-en')],
+          ['Date of Issue', getVal('hk-cover-date-en')]
         ]);
-        html += buildPage('Translation of Household Registration Book (Personal Page)', 'hk-page-preview', [
-          ['姓名 / Name', getVal('hk-page-name') + ' / ' + getVal('hk-page-name-en')],
-          ['户别或与户主关系 / Relationship', getVal('hk-page-relation') + ' / ' + getVal('hk-page-relation-en')],
-          ['曾用名 / Former Name', getVal('hk-page-former') + ' / ' + getVal('hk-page-former-en')],
-          ['性别 / Gender', getVal('hk-page-gender') + ' / ' + getVal('hk-page-gender-en')],
-          ['出生地 / Place of Birth', getVal('hk-page-birthplace') + ' / ' + getVal('hk-page-birthplace-en')],
-          ['民族 / Ethnicity', getVal('hk-page-ethnic') + ' / ' + getVal('hk-page-ethnic-en')],
-          ['籍贯 / Native Place', getVal('hk-page-origin') + ' / ' + getVal('hk-page-origin-en')],
-          ['出生日期 / Date of Birth', getVal('hk-page-dob') + ' / ' + getVal('hk-page-dob-en')],
-          ['本市/县其他住址 / Other Address', getVal('hk-page-otheraddr') + ' / ' + getVal('hk-page-otheraddr-en')],
-          ['宗教信仰 / Religion', getVal('hk-page-religion') + ' / ' + getVal('hk-page-religion-en')],
-          ['公民身份证件编号 / ID Card No.', getVal('hk-page-idnum') + ' / ' + getVal('hk-page-idnum-en')],
-          ['身高 / Height', getVal('hk-page-height') + ' / ' + getVal('hk-page-height-en')],
-          ['血型 / Blood Type', getVal('hk-page-blood') + ' / ' + getVal('hk-page-blood-en')],
-          ['文化程度 / Education', getVal('hk-page-edu') + ' / ' + getVal('hk-page-edu-en')],
-          ['婚姻状况 / Marital Status', getVal('hk-page-marriage') + ' / ' + getVal('hk-page-marriage-en')],
-          ['兵役状况 / Military Service', getVal('hk-page-military') + ' / ' + getVal('hk-page-military-en')],
-          ['服务处所 / Employer', getVal('hk-page-workplace') + ' / ' + getVal('hk-page-workplace-en')],
-          ['职业 / Occupation', getVal('hk-page-job') + ' / ' + getVal('hk-page-job-en')],
-          ['何时由何地迁来本市/县 / Migration Record', getVal('hk-page-migrate') + ' / ' + getVal('hk-page-migrate-en')],
-          ['何时由何地迁来本址 / Move-in Record', getVal('hk-page-movein') + ' / ' + getVal('hk-page-movein-en')],
-          ['登记日期 / Date of Registration', getVal('hk-page-regdate') + ' / ' + getVal('hk-page-regdate-en')],
-          ['承办人签章 / Registered by', getVal('hk-page-agent') + ' / ' + getVal('hk-page-agent-en')],
-          ['登记机关 / Registration Authority', getVal('hk-page-authority') + ' / ' + getVal('hk-page-authority-en')]
+        html += buildCardPage('Translation of Household Registration Book (Personal Page)', 'hk-page-preview', [
+          ['Name', getVal('hk-page-name-en')],
+          ['Relationship to Head', getVal('hk-page-relation-en')],
+          ['Former Name', getVal('hk-page-former-en')],
+          ['Gender', getVal('hk-page-gender-en')],
+          ['Place of Birth', getVal('hk-page-birthplace-en')],
+          ['Ethnic Group', getVal('hk-page-ethnic-en')],
+          ['Place of Origin', getVal('hk-page-origin-en')],
+          ['Date of Birth', getVal('hk-page-dob-en')],
+          ['Other Address', getVal('hk-page-otheraddr-en')],
+          ['Religion', getVal('hk-page-religion-en')],
+          ['Citizen ID Number', getVal('hk-page-idnum-en')],
+          ['Height', getVal('hk-page-height-en')],
+          ['Blood Type', getVal('hk-page-blood-en')],
+          ['Education Level', getVal('hk-page-edu-en')],
+          ['Marital Status', getVal('hk-page-marriage-en')],
+          ['Military Service Status', getVal('hk-page-military-en')],
+          ['Service Place', getVal('hk-page-workplace-en')],
+          ['Occupation', getVal('hk-page-job-en')],
+          ['Migration Record', getVal('hk-page-migrate-en')],
+          ['Move-in Record', getVal('hk-page-movein-en')],
+          ['Date of Registration', getVal('hk-page-regdate-en')],
+          ['Registered by', getVal('hk-page-agent-en')],
+          ['Registration Authority', getVal('hk-page-authority-en')]
         ]);
       }
       return html;
