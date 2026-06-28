@@ -233,25 +233,27 @@
       margin-top: 4px;
     }
     .id-card-row {
-      display: flex;
-      align-items: baseline;
+      display: block;
       margin-bottom: 14px;
       font-size: 14px;
+      overflow: hidden;
     }
-    .id-card-row.half {
-      display: inline-flex;
+    .id-card-row-inline {
+      display: inline-block;
       width: 48%;
       margin-bottom: 14px;
+      vertical-align: top;
     }
     .id-card-label {
       font-weight: 600;
       color: #333;
+      display: inline-block;
       min-width: 140px;
-      flex-shrink: 0;
+      vertical-align: top;
     }
     .id-card-value {
       color: #1a1a1a;
-      flex: 1;
+      display: inline;
       word-break: break-all;
     }
     .id-card-separator {
@@ -1101,10 +1103,10 @@
           }
         } else if (row.half && row.items) {
           // 同行排列
-          html += '<div style="display:flex;gap:20px;">';
+          html += '<div>';
           row.items.forEach(([label, value]) => {
             if (value) {
-              html += `<div class="id-card-row half"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
+              html += `<div class="id-card-row-inline"><span class="id-card-label">${label}</span><span class="id-card-value">${value}</span></div>`;
             }
           });
           html += '</div>';
@@ -1189,14 +1191,22 @@
       el.innerHTML = generatePreviewHTML();
       el.style.display = 'block';
 
+      // 检查是否有内容
+      const content = el.innerHTML.trim();
+      if (!content || content === '') {
+        alert('没有内容可导出。请先填写证件信息。');
+        el.style.display = 'none';
+        return;
+      }
+
       // 滚动到预览区域确保浏览器渲染
       el.scrollIntoView({ behavior: 'instant', block: 'start' });
 
       const opt = {
-        margin: [15, 15, 15, 15],
+        margin: [10, 10, 10, 10],
         filename: 'document-translation.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: true },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
@@ -1208,9 +1218,9 @@
           }
         }).catch(err => {
           console.error('PDF generation failed:', err);
-          alert('PDF 生成失败，请重试');
+          alert('PDF 生成失败: ' + err.message);
         });
-      }, 500);
+      }, 800);
     }
   </script>
 </body>
