@@ -1189,17 +1189,28 @@
       el.innerHTML = generatePreviewHTML();
       el.style.display = 'block';
 
+      // 滚动到预览区域确保浏览器渲染
+      el.scrollIntoView({ behavior: 'instant', block: 'start' });
+
       const opt = {
         margin: [15, 15, 15, 15],
         filename: 'document-translation.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, logging: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      html2pdf().set(opt).from(el).save().then(() => {
-        el.style.display = previewVisible ? 'block' : 'none';
-      });
+      // 延迟执行以确保 DOM 渲染完成
+      setTimeout(() => {
+        html2pdf().set(opt).from(el).save().then(() => {
+          if (!previewVisible) {
+            el.style.display = 'none';
+          }
+        }).catch(err => {
+          console.error('PDF generation failed:', err);
+          alert('PDF 生成失败，请重试');
+        });
+      }, 500);
     }
   </script>
 </body>
