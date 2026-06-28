@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>证件翻译生成器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #666666;
+      --border: #e0e0e0;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .tab:hover:not(.active) {
+      background: #f0f0f0;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .upload-area:hover {
+      border-color: var(--accent);
+    }
+    .upload-area.has-image {
+      border-style: solid;
+      border-color: var(--border);
+      padding: 12px;
+    }
+    .upload-area img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 4px;
+    }
+    .upload-hint {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    input[type="file"] { display: none; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid.full { grid-template-columns: 1fr; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .field input, .field select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: #f0f0f0;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* Preview / PDF output */
+    #pdf-preview {
+      background: white;
+      padding: 40px;
+      max-width: 800px;
+      margin: 20px auto 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .preview-page {
+      page-break-after: always;
+      margin-bottom: 40px;
+    }
+    .preview-page:last-child {
+      page-break-after: auto;
+      margin-bottom: 0;
+    }
+    .preview-image {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .preview-image img {
+      max-width: 100%;
+      max-height: 400px;
+      border: 1px solid #ddd;
+    }
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .preview-table th, .preview-table td {
+      border: 1px solid #333;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .preview-table th {
+      background: #f0f0f0;
+      font-weight: 600;
+      width: 30%;
+    }
+    .preview-title {
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    @media print {
+      body { padding: 0; background: white; }
+      .container > *:not(#pdf-preview) { display: none; }
+      #pdf-preview { border: none; margin: 0; padding: 0; }
+    }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      body { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>证件翻译生成器</h1>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('idcard')">身份证</div>
+      <div class="tab" onclick="switchTab('hukou')">户口本</div>
+    </div>
+
+    <!-- 身份证面板 -->
+    <div id="panel-idcard" class="panel active">
+      <div class="section">
+        <div class="section-title">正面照片</div>
+        <div class="upload-area" onclick="document.getElementById('id-front').click()">
+          <input type="file" id="id-front" accept="image/*" onchange="previewImage(this, 'id-front-preview')">
+          <div id="id-front-placeholder" class="upload-hint">点击上传身份证正面照片</div>
+          <img id="id-front-preview" style="display:none">
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">正面翻译内容</div>
+        <div class="form-grid">
+          <div class="field"><label>证件名称</label><input type="text" id="id-front-name" value="居民身份证"></div>
+          <div class="field"><label>英文名称</label><input type="text" id="id-front-name-en" value="Resident Identity Card"></div>
+          <div class="field"><label>签发机关</label><input type="text" id="id-front-issuer" placeholder="如：北京市公安局海淀分局"></div>
+          <div class="field"><label>英文签发机关</label><input type="text" id="id-front-issuer-en" placeholder="如：Haidian Branch, Beijing Municipal Public Security Bureau"></div>
+          <div class="field"><label>有效期限</label><input type="text" id="id-front-valid" placeholder="如：2020.01.01 - 2040.01.01"></div>
+          <div class="field"><label>英文有效期限</label><input type="text" id="id-front-valid-en" placeholder="如：Valid from 2020.01.01 to 2040.01.01"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">背面照片</div>
+        <div class="upload-area" onclick="document.getElementById('id-back').click()">
+          <input type="file" id="id-back" accept="image/*" onchange="previewImage(this, 'id-back-preview')">
+          <div id="id-back-placeholder" class="upload-hint">点击上传身份证背面照片</div>
+          <img id="id-back-preview" style="display:none">
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">背面翻译内容</div>
+        <div class="form-grid">
+          <div class="field"><label>姓名</label><input type="text" id="id-back-fullname" placeholder="中文姓名"></div>
+          <div class="field"><label>英文姓名</label><input type="text" id="id-back-fullname-en" placeholder="如：ZHANG SAN"></div>
+          <div class="field"><label>性别</label>
+            <select id="id-back-gender">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <div class="field"><label>英文性别</label>
+            <select id="id-back-gender-en">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="field"><label>民族</label><input type="text" id="id-back-ethnic" placeholder="如：汉"></div>
+          <div class="field"><label>英文民族</label><input type="text" id="id-back-ethnic-en" placeholder="如：Han"></div>
+          <div class="field"><label>出生日期</label><input type="text" id="id-back-dob" placeholder="如：1990年1月1日"></div>
+          <div class="field"><label>英文出生日期</label><input type="text" id="id-back-dob-en" placeholder="如：January 1, 1990"></div>
+          <div class="field"><label>住址</label><input type="text" id="id-back-address" placeholder="完整住址"></div>
+          <div class="field"><label>英文住址</label><input type="text" id="id-back-address-en" placeholder="英文住址"></div>
+          <div class="field"><label>公民身份号码</label><input type="text" id="id-back-idnum" placeholder="18位身份证号"></div>
+          <div class="field"><label>英文身份号码</label><input type="text" id="id-back-idnum-en" placeholder="如：ID No."></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 户口本面板 -->
+    <div id="panel-hukou" class="panel">
+      <div class="section">
+        <div class="section-title">户口本首页照片</div>
+        <div class="upload-area" onclick="document.getElementById('hk-cover').click()">
+          <input type="file" id="hk-cover" accept="image/*" onchange="previewImage(this, 'hk-cover-preview')">
+          <div id="hk-cover-placeholder" class="upload-hint">点击上传户口本首页照片</div>
+          <img id="hk-cover-preview" style="display:none">
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">首页翻译内容</div>
+        <div class="form-grid">
+          <div class="field"><label>户别</label><input type="text" id="hk-cover-type" value="居民家庭户口"></div>
+          <div class="field"><label>英文户别</label><input type="text" id="hk-cover-type-en" value="Household Type: Family Household"></div>
+          <div class="field"><label>户主姓名</label><input type="text" id="hk-cover-head" placeholder="户主姓名"></div>
+          <div class="field"><label>英文户主姓名</label><input type="text" id="hk-cover-head-en" placeholder="如：Head of Household: ZHANG SAN"></div>
+          <div class="field"><label>户号</label><input type="text" id="hk-cover-num" placeholder="户号"></div>
+          <div class="field"><label>英文户号</label><input type="text" id="hk-cover-num-en" placeholder="如：Household No."></div>
+          <div class="field"><label>住址</label><input type="text" id="hk-cover-address" placeholder="完整住址"></div>
+          <div class="field"><label>英文住址</label><input type="text" id="hk-cover-address-en" placeholder="英文住址"></div>
+          <div class="field"><label>承办人签章</label><input type="text" id="hk-cover-agent" placeholder="承办人"></div>
+          <div class="field"><label>英文承办人</label><input type="text" id="hk-cover-agent-en" placeholder="如：Registered by:"></div>
+          <div class="field"><label>签发日期</label><input type="text" id="hk-cover-date" placeholder="如：2020年1月1日"></div>
+          <div class="field"><label>英文签发日期</label><input type="text" id="hk-cover-date-en" placeholder="如：Date of Issue: January 1, 2020"></div>
+          <div class="field"><label>省级公安机关户口专用章</label><input type="text" id="hk-cover-stamp" value="（户口专用章）"></div>
+          <div class="field"><label>英文印章</label><input type="text" id="hk-cover-stamp-en" value="(Official Seal for Household Registration)"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">常住人口登记卡照片</div>
+        <div class="upload-area" onclick="document.getElementById('hk-page').click()">
+          <input type="file" id="hk-page" accept="image/*" onchange="previewImage(this, 'hk-page-preview')">
+          <div id="hk-page-placeholder" class="upload-hint">点击上传常住人口登记卡照片</div>
+          <img id="hk-page-preview" style="display:none">
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">登记卡翻译内容</div>
+        <div class="form-grid">
+          <div class="field"><label>姓名</label><input type="text" id="hk-page-name" placeholder="姓名"></div>
+          <div class="field"><label>英文姓名</label><input type="text" id="hk-page-name-en" placeholder="如：Name: ZHANG SAN"></div>
+          <div class="field"><label>户别或与户主关系</label><input type="text" id="hk-page-relation" placeholder="如：户主 / 之女"></div>
+          <div class="field"><label>英文关系</label><input type="text" id="hk-page-relation-en" placeholder="如：Relationship to Head: Daughter"></div>
+          <div class="field"><label>曾用名</label><input type="text" id="hk-page-former" placeholder="无 / 曾用名"></div>
+          <div class="field"><label>英文曾用名</label><input type="text" id="hk-page-former-en" placeholder="如：Former Name: None"></div>
+          <div class="field"><label>性别</label>
+            <select id="hk-page-gender">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <div class="field"><label>英文性别</label>
+            <select id="hk-page-gender-en">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="field"><label>出生地</label><input type="text" id="hk-page-birthplace" placeholder="如：北京市海淀区"></div>
+          <div class="field"><label>英文出生地</label><input type="text" id="hk-page-birthplace-en" placeholder="如：Place of Birth: Haidian District, Beijing"></div>
+          <div class="field"><label>民族</label><input type="text" id="hk-page-ethnic" placeholder="如：汉族"></div>
+          <div class="field"><label>英文民族</label><input type="text" id="hk-page-ethnic-en" placeholder="如：Ethnicity: Han"></div>
+          <div class="field"><label>籍贯</label><input type="text" id="hk-page-origin" placeholder="如：北京市"></div>
+          <div class="field"><label>英文籍贯</label><input type="text" id="hk-page-origin-en" placeholder="如：Native Place: Beijing"></div>
+          <div class="field"><label>出生日期</label><input type="text" id="hk-page-dob" placeholder="如：1990年1月1日"></div>
+          <div class="field"><label>英文出生日期</label><input type="text" id="hk-page-dob-en" placeholder="如：Date of Birth: January 1, 1990"></div>
+          <div class="field"><label>本市/县其他住址</label><input type="text" id="hk-page-otheraddr" placeholder="无 / 其他住址"></div>
+          <div class="field"><label>英文其他住址</label><input type="text" id="hk-page-otheraddr-en" placeholder="如：Other Address in City/County: None"></div>
+          <div class="field"><label>宗教信仰</label><input type="text" id="hk-page-religion" value="无"></div>
+          <div class="field"><label>英文宗教信仰</label><input type="text" id="hk-page-religion-en" value="Religion: None"></div>
+          <div class="field"><label>公民身份证件编号</label><input type="text" id="hk-page-idnum" placeholder="18位身份证号"></div>
+          <div class="field"><label>英文证件编号</label><input type="text" id="hk-page-idnum-en" placeholder="如：ID Card No."></div>
+          <div class="field"><label>身高</label><input type="text" id="hk-page-height" placeholder="如：175cm"></div>
+          <div class="field"><label>英文身高</label><input type="text" id="hk-page-height-en" placeholder="如：Height: 175cm"></div>
+          <div class="field"><label>血型</label><input type="text" id="hk-page-blood" placeholder="如：A型 / 未知"></div>
+          <div class="field"><label>英文血型</label><input type="text" id="hk-page-blood-en" placeholder="如：Blood Type: Type A"></div>
+          <div class="field"><label>文化程度</label><input type="text" id="hk-page-edu" placeholder="如：大学本科"></div>
+          <div class="field"><label>英文文化程度</label><input type="text" id="hk-page-edu-en" placeholder="如：Education: Bachelor's Degree"></div>
+          <div class="field"><label>婚姻状况</label><input type="text" id="hk-page-marriage" placeholder="如：未婚"></div>
+          <div class="field"><label>英文婚姻状况</label><input type="text" id="hk-page-marriage-en" placeholder="如：Marital Status: Single"></div>
+          <div class="field"><label>兵役状况</label><input type="text" id="hk-page-military" value="未服兵役"></div>
+          <div class="field"><label>英文兵役状况</label><input type="text" id="hk-page-military-en" value="Military Service: Not Served"></div>
+          <div class="field"><label>服务处所</label><input type="text" id="hk-page-workplace" placeholder="如：XX公司 / 无"></div>
+          <div class="field"><label>英文服务处所</label><input type="text" id="hk-page-workplace-en" placeholder="如：Employer: XX Company"></div>
+          <div class="field"><label>职业</label><input type="text" id="hk-page-job" placeholder="如：职员 / 无"></div>
+          <div class="field"><label>英文职业</label><input type="text" id="hk-page-job-en" placeholder="如：Occupation: Staff"></div>
+          <div class="field"><label>何时由何地迁来本市/县</label><input type="text" id="hk-page-migrate" placeholder="如：2010年9月1日 由北京市XX区迁来"></div>
+          <div class="field"><label>英文迁移记录</label><input type="text" id="hk-page-migrate-en" placeholder="如：Moved to this city/county on Sep 1, 2010 from XX District, Beijing"></div>
+          <div class="field"><label>何时由何地迁来本址</label><input type="text" id="hk-page-movein" placeholder="如：2020年1月1日 因购房由XX路XX号迁来"></div>
+          <div class="field"><label>英文迁入记录</label><input type="text" id="hk-page-movein-en" placeholder="如：Moved to this address on Jan 1, 2020 due to property purchase"></div>
+          <div class="field"><label>登记日期</label><input type="text" id="hk-page-regdate" placeholder="如：2020年1月1日"></div>
+          <div class="field"><label>英文登记日期</label><input type="text" id="hk-page-regdate-en" placeholder="如：Date of Registration: January 1, 2020"></div>
+          <div class="field"><label>承办人签章</label><input type="text" id="hk-page-agent" placeholder="承办人"></div>
+          <div class="field"><label>英文承办人</label><input type="text" id="hk-page-agent-en" placeholder="如：Registered by:"></div>
+          <div class="field"><label>登记机关</label><input type="text" id="hk-page-authority" placeholder="如：XX派出所"></div>
+          <div class="field"><label>英文登记机关</label><input type="text" id="hk-page-authority-en" placeholder="如：Registration Authority: XX Police Station"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="generatePDF()">导出 PDF</button>
+      <button class="btn btn-secondary" onclick="togglePreview()">预览</button>
+    </div>
+
+    <div id="pdf-preview" style="display:none"></div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    function previewImage(input, previewId) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.getElementById(previewId);
+        img.src = e.target.result;
+        img.style.display = 'block';
+        img.parentElement.classList.add('has-image');
+        const placeholder = img.parentElement.querySelector('.upload-hint');
+        if (placeholder) placeholder.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function getVal(id) { return document.getElementById(id)?.value || ''; }
+
+    function buildTable(rows) {
+      let html = '<table class="preview-table">';
+      rows.forEach(([cn, en]) => {
+        if (cn || en) html += `<tr><th>${cn}</th><td>${en}</td></tr>`;
+      });
+      html += '</table>';
+      return html;
+    }
+
+    function buildPage(title, imgId, tableRows) {
+      const img = document.getElementById(imgId);
+      let html = '<div class="preview-page">';
+      html += `<div class="preview-title">${title}</div>`;
+      if (img && img.src && img.style.display !== 'none') {
+        html += `<div class="preview-image"><img src="${img.src}"></div>`;
+      }
+      html += buildTable(tableRows);
+      html += '</div>';
+      return html;
+    }
+
+    function generatePreviewHTML() {
+      const activeTab = document.querySelector('.tab.active').textContent;
+      let html = '';
+
+      if (activeTab === '身份证') {
+        html += buildPage('Translation of Resident Identity Card (Front)', 'id-front-preview', [
+          ['证件名称 / Document Name', getVal('id-front-name') + ' / ' + getVal('id-front-name-en')],
+          ['签发机关 / Issuing Authority', getVal('id-front-issuer') + ' / ' + getVal('id-front-issuer-en')],
+          ['有效期限 / Validity Period', getVal('id-front-valid') + ' / ' + getVal('id-front-valid-en')]
+        ]);
+        html += buildPage('Translation of Resident Identity Card (Back)', 'id-back-preview', [
+          ['姓名 / Name', getVal('id-back-fullname') + ' / ' + getVal('id-back-fullname-en')],
+          ['性别 / Gender', getVal('id-back-gender') + ' / ' + getVal('id-back-gender-en')],
+          ['民族 / Ethnicity', getVal('id-back-ethnic') + ' / ' + getVal('id-back-ethnic-en')],
+          ['出生 / Date of Birth', getVal('id-back-dob') + ' / ' + getVal('id-back-dob-en')],
+          ['住址 / Address', getVal('id-back-address') + ' / ' + getVal('id-back-address-en')],
+          ['公民身份号码 / ID Number', getVal('id-back-idnum') + ' / ' + getVal('id-back-idnum-en')]
+        ]);
+      } else {
+        html += buildPage('Translation of Household Registration Book (Cover Page)', 'hk-cover-preview', [
+          ['户别 / Household Type', getVal('hk-cover-type') + ' / ' + getVal('hk-cover-type-en')],
+          ['户主姓名 / Head of Household', getVal('hk-cover-head') + ' / ' + getVal('hk-cover-head-en')],
+          ['户号 / Household No.', getVal('hk-cover-num') + ' / ' + getVal('hk-cover-num-en')],
+          ['住址 / Address', getVal('hk-cover-address') + ' / ' + getVal('hk-cover-address-en')],
+          ['承办人签章 / Registered by', getVal('hk-cover-agent') + ' / ' + getVal('hk-cover-agent-en')],
+          ['签发日期 / Date of Issue', getVal('hk-cover-date') + ' / ' + getVal('hk-cover-date-en')],
+          ['户口专用章 / Official Seal', getVal('hk-cover-stamp') + ' / ' + getVal('hk-cover-stamp-en')]
+        ]);
+        html += buildPage('Translation of Household Registration Book (Personal Page)', 'hk-page-preview', [
+          ['姓名 / Name', getVal('hk-page-name') + ' / ' + getVal('hk-page-name-en')],
+          ['户别或与户主关系 / Relationship', getVal('hk-page-relation') + ' / ' + getVal('hk-page-relation-en')],
+          ['曾用名 / Former Name', getVal('hk-page-former') + ' / ' + getVal('hk-page-former-en')],
+          ['性别 / Gender', getVal('hk-page-gender') + ' / ' + getVal('hk-page-gender-en')],
+          ['出生地 / Place of Birth', getVal('hk-page-birthplace') + ' / ' + getVal('hk-page-birthplace-en')],
+          ['民族 / Ethnicity', getVal('hk-page-ethnic') + ' / ' + getVal('hk-page-ethnic-en')],
+          ['籍贯 / Native Place', getVal('hk-page-origin') + ' / ' + getVal('hk-page-origin-en')],
+          ['出生日期 / Date of Birth', getVal('hk-page-dob') + ' / ' + getVal('hk-page-dob-en')],
+          ['本市/县其他住址 / Other Address', getVal('hk-page-otheraddr') + ' / ' + getVal('hk-page-otheraddr-en')],
+          ['宗教信仰 / Religion', getVal('hk-page-religion') + ' / ' + getVal('hk-page-religion-en')],
+          ['公民身份证件编号 / ID Card No.', getVal('hk-page-idnum') + ' / ' + getVal('hk-page-idnum-en')],
+          ['身高 / Height', getVal('hk-page-height') + ' / ' + getVal('hk-page-height-en')],
+          ['血型 / Blood Type', getVal('hk-page-blood') + ' / ' + getVal('hk-page-blood-en')],
+          ['文化程度 / Education', getVal('hk-page-edu') + ' / ' + getVal('hk-page-edu-en')],
+          ['婚姻状况 / Marital Status', getVal('hk-page-marriage') + ' / ' + getVal('hk-page-marriage-en')],
+          ['兵役状况 / Military Service', getVal('hk-page-military') + ' / ' + getVal('hk-page-military-en')],
+          ['服务处所 / Employer', getVal('hk-page-workplace') + ' / ' + getVal('hk-page-workplace-en')],
+          ['职业 / Occupation', getVal('hk-page-job') + ' / ' + getVal('hk-page-job-en')],
+          ['何时由何地迁来本市/县 / Migration Record', getVal('hk-page-migrate') + ' / ' + getVal('hk-page-migrate-en')],
+          ['何时由何地迁来本址 / Move-in Record', getVal('hk-page-movein') + ' / ' + getVal('hk-page-movein-en')],
+          ['登记日期 / Date of Registration', getVal('hk-page-regdate') + ' / ' + getVal('hk-page-regdate-en')],
+          ['承办人签章 / Registered by', getVal('hk-page-agent') + ' / ' + getVal('hk-page-agent-en')],
+          ['登记机关 / Registration Authority', getVal('hk-page-authority') + ' / ' + getVal('hk-page-authority-en')]
+        ]);
+      }
+      return html;
+    }
+
+    let previewVisible = false;
+    function togglePreview() {
+      const el = document.getElementById('pdf-preview');
+      previewVisible = !previewVisible;
+      if (previewVisible) {
+        el.innerHTML = generatePreviewHTML();
+        el.style.display = 'block';
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    function generatePDF() {
+      const el = document.getElementById('pdf-preview');
+      el.innerHTML = generatePreviewHTML();
+      el.style.display = 'block';
+
+      const opt = {
+        margin: [15, 15, 15, 15],
+        filename: 'document-translation.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(el).save().then(() => {
+        el.style.display = previewVisible ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
